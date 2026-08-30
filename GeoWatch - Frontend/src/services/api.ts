@@ -9,6 +9,35 @@ const api = axios.create({
   },
 })
 
+export const getAuthToken = () => localStorage.getItem('authToken') ?? sessionStorage.getItem('authToken')
+
+export const clearAdminSession = () => {
+  localStorage.removeItem('authToken')
+  localStorage.removeItem('adminId')
+  sessionStorage.removeItem('authToken')
+  sessionStorage.removeItem('adminId')
+}
+
+export const saveAdminSession = (token: string, adminId: string | number, remember: boolean) => {
+  const storage = remember ? localStorage : sessionStorage
+  storage.setItem('authToken', token)
+  storage.setItem('adminId', String(adminId))
+}
+
+api.interceptors.request.use((config) => {
+  const token = getAuthToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) clearAdminSession()
+    return Promise.reject(error)
+  },
+)
+
 export interface RegisterAdminPayload {
   name: string
   email: string
@@ -32,7 +61,6 @@ export interface CreateEventPayload {
   radius: number
   startTime: string
   endTime: string
-  adminId: number
   organizers: OrganizerPayload[]
 }
 
@@ -61,10 +89,8 @@ export const getClustersByEventId = async (eventId: string) => {
   return response.data
 }
 
-export const getActiveEvents = async (adminId: number) => {
-  const response = await api.get<Event[]>('/events/admin/active', {
-    params: { adminId },
-  })
+export const getActiveEvents = async () => {
+  const response = await api.get<Event[]>('/events/admin/active')
   return response.data
 }
 

@@ -1,13 +1,18 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
-import 'leaflet.heat'
-import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { motion } from 'framer-motion'
 import { useParams } from 'react-router-dom'
-import { Locate } from 'lucide-react'
+import GlassCard from '../components/GlassCard'
+import Reveal from '../components/Reveal'
+import CreateEventCard from '../components/dashboard/CreateEventCard'
+import ActiveIncidentCard from '../components/dashboard/ActiveIncidentCard'
+import IncidentList from '../components/dashboard/IncidentList'
+import MapPanel from '../components/dashboard/MapPanel'
 import type { Cluster, Incident, RiskLevel } from '../types/cluster'
 import type { Event } from '../types/event'
 import { getClustersByEventId, getEventById } from '../services/api'
 import { createWebSocketClient } from '../services/websocket'
+
 type ClusterLike = {
   centerLat?: unknown
   centerLng?: unknown
@@ -24,15 +29,9 @@ type ClusterLike = {
 }
 
 const wsEndpoint = (() => {
-  const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_ENDPOINT || 'http://localhost:8080/ws'
+  const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_ENDPOINT || `http://${window.location.hostname}:8080/ws`
   return base.endsWith('/ws') ? base : base.replace(/\/+$/, '') + '/ws'
 })()
-
-const riskColorMap: Record<RiskLevel, string> = {
-  HIGH: 'red',
-  MEDIUM: 'orange',
-  LOW: 'yellow',
-}
 
 const isRiskLevel = (value: string): value is RiskLevel => value === 'HIGH' || value === 'MEDIUM' || value === 'LOW'
 
@@ -114,59 +113,12 @@ const normalizeClusters = (payload: unknown, targetEventId: string): Cluster[] =
   return []
 }
 
-function MapRecenter({ center }: { center: [number, number] }) {
-  const map = useMap()
-
-  useEffect(() => {
-    map.setView(center)
-  }, [center, map])
-
-  return null
-}
-
-function MapClickHandler() {
-  useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng
-      console.log('Latitude:', lat, 'Longitude:', lng)
-    },
-  })
-
-  return null
-}
-
-type HeatPoint = [number, number, number]
-
-function HeatmapOverlay({ points }: { points: HeatPoint[] }) {
-  const map = useMap()
-
-  useEffect(() => {
-    const heatLayer = (L as unknown as { heatLayer: (value: HeatPoint[], options: Record<string, number>) => L.Layer }).heatLayer(
-      points,
-      {
-        radius: 25,
-        blur: 15,
-        maxZoom: 17,
-      },
-    )
-
-    heatLayer.addTo(map)
-    return () => {
-      map.removeLayer(heatLayer)
-    }
-  }, [map, points])
-
-  return null
-}
-
 function Dashboard() {
   const params = useParams()
   const { eventId } = params
-  console.log('URL:', window.location.pathname)
-  console.log('Params:', params)
-  console.log('Dashboard Event ID:', eventId)
   const [eventData, setEventData] = useState<Event | null>(null)
   const [clusters, setClusters] = useState<Cluster[]>([])
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -203,8 +155,6 @@ function Dashboard() {
   useEffect(() => {
     if (!eventId || eventId === 'undefined' || eventId === 'null') {
       console.error('Dashboard loaded without eventId')
-      setError('Missing event ID.')
-      setLoading(false)
       return
     }
 
@@ -226,7 +176,7 @@ function Dashboard() {
 
         const normalizedEvent: Event = {
           id: eventResponse.id ?? eventId,
-          name: eventResponse.name ?? 'GeoWatch Event',
+          name: eventResponse.name ?? 'MOBALERT Event',
           centerLat: Number(eventResponse.centerLat),
           centerLng: Number(eventResponse.centerLng),
           radius: Number(eventResponse.radius),
@@ -269,199 +219,132 @@ function Dashboard() {
     }
   }, [eventId])
 
-useEffect(() => {
+  useEffect(() => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') return
 
-  if (!eventId || eventId === 'undefined' || eventId === 'null') return
+    const client = createWebSocketClient(wsEndpoint)
+    client.debug = () => {}
 
-  const client = createWebSocketClient(wsEndpoint)
-  client.debug = () => {}
-
-  client.connect({}, () => {
-
-    client.subscribe(`/topic/risk-updates/${eventId}`, (message) => {
-
-      try {
-        const payload = JSON.parse(message.body)
-        setClusters(normalizeClusters(payload, eventId))
-      } catch (err) {
-        console.error("WebSocket parse error", err)
-      }
-
+    client.connect({}, () => {
+      client.subscribe(`/topic/risk-updates/${eventId}`, (message) => {
+        try {
+          const payload = JSON.parse(message.body)
+          setClusters(normalizeClusters(payload, eventId))
+        } catch (err) {
+          console.error('WebSocket parse error', err)
+        }
+      })
     })
 
-  })
-
-  return () => {
-    try {
-      client.disconnect(() => {})
-    } catch (error) {
-      console.error('WebSocket disconnect error', error)
+    return () => {
+      try {
+        client.disconnect(() => {})
+      } catch (error) {
+        console.error('WebSocket disconnect error', error)
+      }
     }
-  }
-
-}, [eventId])
+  }, [eventId])
 
   const mapCenter = useMemo<[number, number]>(
     () => [eventData?.centerLat ?? 20.5937, eventData?.centerLng ?? 78.9629],
     [eventData?.centerLat, eventData?.centerLng],
   )
-  const heatmapPoints = useMemo<[number, number, number][]>(
-    () => clusters.map((cluster) => [cluster.centerLat, cluster.centerLng, cluster.incidentCount]),
-    [clusters],
+
+  const selectedCluster = useMemo(
+    () => (selectedIndex !== null && clusters[selectedIndex] ? clusters[selectedIndex] : null),
+    [selectedIndex, clusters],
   )
+
+  const handleSelect = (index: number | null) => setSelectedIndex(index)
+
+  if (!eventId || eventId === 'undefined' || eventId === 'null') {
+    return (
+      <GlassCard className="p-10">
+        <h1 className="text-xl font-semibold text-[#ccd0cf]">MOBALERT</h1>
+        <p className="mt-2 text-sm text-rose-300">Missing event ID.</p>
+      </GlassCard>
+    )
+  }
 
   if (loading) {
     return (
-      <section className="rounded-xl bg-slate-800 p-8 shadow-sm">
-        <h1 className="text-3xl font-bold">GeoWatch</h1>
-        <p className="mt-2 text-slate-300">Loading dashboard...</p>
-      </section>
+      <GlassCard className="p-10">
+        <h1 className="text-xl font-semibold text-[#ccd0cf]">MOBALERT</h1>
+        <p className="mt-2 animate-pulse text-sm text-muted">Loading dashboard...</p>
+      </GlassCard>
     )
   }
 
   if (error || !eventData) {
     return (
-      <section className="rounded-xl bg-slate-800 p-8 shadow-sm">
-        <h1 className="text-3xl font-bold">GeoWatch</h1>
-        <p className="mt-2 text-rose-300">{error || 'Dashboard unavailable.'}</p>
-      </section>
+      <GlassCard className="p-10">
+        <h1 className="text-xl font-semibold text-[#ccd0cf]">MOBALERT</h1>
+        <p className="mt-2 text-sm text-rose-300">{error || 'Dashboard unavailable.'}</p>
+      </GlassCard>
     )
   }
-return (
-  <section className="space-y-6 rounded-xl bg-slate-800 p-8 shadow-sm">
-    
-    <div>
-      <h1 className="text-3xl font-bold">GeoWatch</h1>
-      <p className="mt-2 text-slate-300">
-        Dashboard for event: {eventData.name}
-      </p>
-      {locationError && <p className="mt-2 text-sm text-rose-400">{locationError}</p>}
-    </div>
-
-    <div className="relative overflow-hidden rounded-xl border border-slate-600">
-
-      <button
-        type="button"
-        onClick={locateMe}
-        disabled={locating}
-        title="Locate Me"
-        className="absolute left-[10px] top-[80px] z-[400] flex h-8 w-8 items-center justify-center rounded border border-slate-600 bg-slate-800 text-cyan-400 shadow-sm transition hover:bg-slate-700 disabled:opacity-50"
-      >
-        <Locate className="h-4 w-4" />
-      </button>
-
-      <MapContainer center={mapCenter} zoom={15} className="h-[34rem] w-full" ref={setMap}>
-
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <HeatmapOverlay points={heatmapPoints} />
-
-        <MapClickHandler />
-        <MapRecenter center={mapCenter} />
-
-        {userLocation && (
-          <>
-            <Circle
-              center={[userLocation.lat, userLocation.lng]}
-              radius={userLocation.accuracy}
-              pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, stroke: false }}
-            />
-            <CircleMarker
-              center={[userLocation.lat, userLocation.lng]}
-              radius={7}
-              pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 }}
-            />
-          </>
-        )}
-
-        {/* Event geofence */}
-        <Circle
-          center={mapCenter}
-          radius={eventData.radius}
-          pathOptions={{
-            color: "#33C3D9",
-            fillColor: "#33C3D9",
-            fillOpacity: 0.12,
-          }}
-        />
-{/* Incident clusters */}
-{clusters.map((cluster, index) => {
-  const center: [number, number] = [cluster.centerLat, cluster.centerLng]
 
   return (
-    <Fragment key={`cluster-${index}`}>
-      {/* Bright red incident dot */}
-      <CircleMarker
-        center={center}
-        radius={6}
-        pathOptions={{
-          color: "#ff0000",
-          fillColor: "#ff0000",
-          fillOpacity: 1
-        }}
-      />
-
-      {/* Cluster circle */}
-      <Circle
-        center={center}
-        radius={Math.max(8, cluster.incidentCount * 4)}
-        pathOptions={{
-          color: riskColorMap[cluster.riskLevel],
-          fillColor: riskColorMap[cluster.riskLevel],
-          fillOpacity: 0.25
-        }}
-      >
-        <Popup>
-          <div className="space-y-2 text-slate-800">
-            <h3 className="text-sm font-semibold">
-              Incident Reports ({cluster.incidentCount})
-            </h3>
-
-            {cluster.incidents.length > 0 ? (
-              <div className="space-y-1 text-xs">
-                {cluster.incidents.map((incident, i) => (
-                  <p key={i}>
-                    {incident.name} - {incident.phoneNumber}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs">No incident details available.</p>
-            )}
+    <Reveal direction="none">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-[#ccd0cf]">Live Monitoring</h1>
+            <p className="mt-0.5 text-sm text-muted">
+              Dashboard for <span className="font-semibold text-muted">{eventData.name}</span>
+            </p>
           </div>
-        </Popup>
-      </Circle>
-    </Fragment>
-  )
-})}
+          <div className="flex gap-2">
+            <div className="rounded-lg border border-mid/40 bg-deep/50 px-3 py-1.5 backdrop-blur">
+              <p className="text-[10px] uppercase tracking-wider text-muted">Clusters</p>
+              <motion.p key={clusters.length} initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="text-base font-bold text-[#ccd0cf]">
+                {clusters.length}
+              </motion.p>
+            </div>
+            <div className="rounded-lg border border-mid/40 bg-deep/50 px-3 py-1.5 backdrop-blur">
+              <p className="text-[10px] uppercase tracking-wider text-muted">Reports</p>
+              <motion.p
+                key={clusters.reduce((sum, cluster) => sum + cluster.incidentCount, 0)}
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                className="text-base font-bold text-muted"
+              >
+                {clusters.reduce((sum, cluster) => sum + cluster.incidentCount, 0)}
+              </motion.p>
+            </div>
+          </div>
+        </div>
 
-      </MapContainer>
+        <div className="grid min-h-full items-start gap-4 lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
+          {/* Left column */}
+          <div className="flex flex-col gap-4">
+            <CreateEventCard />
+            {selectedCluster ? (
+              <ActiveIncidentCard cluster={selectedCluster} eventName={eventData.name} />
+            ) : (
+              <div className="rounded-2xl border border-mid/40 bg-deep/60 p-[18px] text-center backdrop-blur-xl">
+                <p className="text-xs text-muted">Select a cluster from the list or map to inspect its risk zone.</p>
+              </div>
+            )}
+            <IncidentList clusters={clusters} selectedIndex={selectedIndex} onSelect={handleSelect} eventData={eventData} />
+          </div>
 
-      {/* Risk Legend */}
-      <div className="absolute bottom-3 right-3 z-[400] rounded-lg bg-slate-900/90 p-3 text-xs text-slate-100 shadow-md">
-        <p className="mb-2 text-sm font-semibold">Risk Legend</p>
-
-        <div className="space-y-1">
-          <p className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-red-500"></span>
-            High Risk
-          </p>
-
-          <p className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-orange-400"></span>
-            Medium Risk
-          </p>
-
-          <p className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-yellow-300"></span>
-            Low Risk
-          </p>
+          {/* Right column */}
+          <MapPanel
+            eventData={eventData}
+            clusters={clusters}
+            selectedIndex={selectedIndex}
+            onSelectCluster={handleSelect}
+            mapCenter={mapCenter}
+            userLocation={userLocation}
+            locating={locating}
+            locationError={locationError}
+            onLocate={locateMe}
+            setMapRef={setMap}
+          />
         </div>
       </div>
-      </div>
-    </section>
+    </Reveal>
   )
 }
 

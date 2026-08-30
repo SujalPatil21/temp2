@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapPin, Radio } from 'lucide-react'
+import GlassCard from '../components/GlassCard'
+import Reveal from '../components/Reveal'
 import { getActiveEvents } from '../services/api'
 import type { Event } from '../types/event'
 
@@ -28,17 +31,8 @@ function AdminEvents() {
 
   useEffect(() => {
     const loadEvents = async () => {
-      const adminId = Number(localStorage.getItem('adminId'))
-      if (!Number.isFinite(adminId) || adminId <= 0) {
-        setError('Admin session missing. Please log in again.')
-        setEvents([])
-        setLoading(false)
-        return
-      }
-
       try {
-        const data = await getActiveEvents(adminId)
-        console.log('ACTIVE EVENTS RESPONSE:', data)
+        const data = await getActiveEvents()
         setEvents(Array.isArray(data) ? (data as ActiveEvent[]) : [])
       } catch {
         setError('Unable to load events.')
@@ -52,7 +46,6 @@ function AdminEvents() {
   }, [])
 
   const handleConnect = (event: ActiveEvent) => {
-    console.log('Event object:', event)
     const eventId = event.id ?? event.eventId
 
     if (eventId === undefined || eventId === null || eventId === '') {
@@ -64,40 +57,64 @@ function AdminEvents() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-2xl rounded-xl bg-slate-800 p-8 shadow-sm">
-      <h1 className="text-3xl font-bold">GeoWatch</h1>
-      <p className="mt-2 text-slate-300">Select Event</p>
+    <div className="space-y-8">
+      <Reveal>
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold text-[#ccd0cf]">Select Event</h1>
+          <p className="text-sm text-muted">Choose an active event to open its live monitoring dashboard.</p>
+        </div>
+      </Reveal>
 
-      <div className="mt-6 space-y-4">
-        {loading && <p className="text-slate-300">Loading events...</p>}
-        {!loading && error && <p className="text-sm text-rose-300">{error}</p>}
+      <div className="space-y-4">
+        {loading && (
+          <GlassCard className="animate-pulse p-8">
+            <p className="text-muted">Loading events...</p>
+          </GlassCard>
+        )}
+
+        {!loading && error && (
+          <GlassCard className="border-rose-400/30 p-6">
+            <p className="text-sm text-rose-300">{error}</p>
+          </GlassCard>
+        )}
+
         {!loading && !error && events.length === 0 && (
-          <p className="text-sm text-rose-300">No active events found.</p>
+          <GlassCard className="p-6">
+            <p className="text-sm text-rose-300">No active events found.</p>
+          </GlassCard>
         )}
 
         {!loading &&
           !error &&
           events.map((event, index) => (
-            <article
-              key={`${event.id ?? event.eventId ?? index}`}
-              className="rounded-lg border border-slate-600 bg-slate-900/60 p-4"
-            >
-              <h2 className="text-lg font-semibold text-slate-100">{event.name || 'Untitled Event'}</h2>
-              <p className="mt-2 text-sm text-slate-300">Radius: {event.radius}m</p>
-              <p className="mt-1 text-sm text-slate-300">Starts: {formatDateTime(event.startTime)}</p>
-              <p className="mt-1 text-sm text-slate-300">Ends: {formatDateTime(event.endTime)}</p>
+            <Reveal key={`${event.id ?? event.eventId ?? index}`} delay={index * 0.08}>
+              <GlassCard hover className="group flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-deep text-muted ring-1 ring-mid/60">
+                  <MapPin className="h-5 w-5" />
+                </span>
 
-              <button
-                type="button"
-                onClick={() => handleConnect(event)}
-                className="mt-4 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-cyan-300"
-              >
-                Connect
-              </button>
-            </article>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-lg font-semibold text-[#ccd0cf]">{event.name || 'Untitled Event'}</h2>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+                    <span>Radius: {event.radius}m</span>
+                    <span>Starts: {formatDateTime(event.startTime)}</span>
+                    <span>Ends: {formatDateTime(event.endTime)}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleConnect(event)}
+                  className="btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+                >
+                  <Radio className="h-4 w-4" />
+                  Connect
+                </button>
+              </GlassCard>
+            </Reveal>
           ))}
       </div>
-    </section>
+    </div>
   )
 }
 

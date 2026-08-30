@@ -1,12 +1,14 @@
 import { Outlet } from 'react-router-dom'
+import Background from '../components/Background'
 
 function MainLayout() {
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="min-h-screen">
+      <Background />
+      <div className="mx-auto w-full max-w-[1600px] px-6 py-10 md:px-12">
         <Outlet />
       </div>
-    </main>
+    </div>
   )
 }
 
