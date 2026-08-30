@@ -12,6 +12,7 @@ import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/incident_viewmodel.dart';
 import '../widgets/offline_banner.dart';
 import 'success_screen.dart';
+import 'incident_report_screen.dart';
 
 class EventHomeScreen extends StatelessWidget {
   const EventHomeScreen({super.key});
@@ -243,20 +244,14 @@ class _EventHomeViewState extends State<_EventHomeView>
     _didTrigger = true;
 
     if (event == null || auth.fullName == null || auth.phoneNumber == null) return;
-    final ok = await vm.submitIncident(
-      eventId: event.id,
-      name: auth.fullName!,
-      phoneNumber: auth.phoneNumber!,
-    );
-    if (!mounted || !ok) return;
+    
     HapticFeedback.heavyImpact();
     _holdController.value = 0;
+    
     Navigator.pushNamed(
       context,
-      SuccessScreen.routeName,
-      arguments: {
-        'incidentId': vm.lastSubmittedIncidentId,
-      },
+      IncidentReportScreen.routeName,
+      arguments: event,
     );
   }
 

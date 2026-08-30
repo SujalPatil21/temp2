@@ -12,6 +12,7 @@ import 'screens/registration_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/success_screen.dart';
+import 'screens/incident_report_screen.dart';
 import 'services/connectivity_service.dart';
 import 'services/location_service.dart';
 import 'viewmodels/auth_viewmodel.dart';
@@ -99,6 +100,7 @@ class _GeoWatchAppState extends State<GeoWatchApp> with WidgetsBindingObserver {
           RegistrationScreen.routeName: (_) => const RegistrationScreen(),
           EventsScreen.routeName: (_) => const EventsScreen(),
           EventHomeScreen.routeName: (_) => const EventHomeScreen(),
+          IncidentReportScreen.routeName: (_) => const IncidentReportScreen(),
           SuccessScreen.routeName: (_) => const SuccessScreen(),
           SettingsScreen.routeName: (_) => const SettingsScreen(),
           LocationRequiredScreen.routeName: (_) => const LocationRequiredScreen(),

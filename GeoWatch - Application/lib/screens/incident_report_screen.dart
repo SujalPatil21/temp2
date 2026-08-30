@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/event_model.dart';
 import '../repositories/incident_repository.dart';
 import '../services/connectivity_service.dart';
 import '../services/incident_service.dart';
 import '../services/location_service.dart';
+import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/incident_viewmodel.dart';
 import '../widgets/input_field.dart';
 import '../widgets/loading_indicator.dart';
@@ -39,24 +42,91 @@ class _IncidentReportView extends StatefulWidget {
 }
 
 class _IncidentReportViewState extends State<_IncidentReportView> {
-  static const List<String> _incidentTypes = [
-    'Harassment',
-    'Unsafe Crowd Movement',
-    'Medical Emergency',
-    'Other',
+  static const List<String> _descriptionSuggestions = [
+    'I saw a gun',
+    'I saw a person being assaulted',
+    'I saw a fight',
+    'I saw someone injured',
+    'I saw smoke',
+    'I saw a fire',
+    'Someone is unconscious',
+    'Someone is being assaulted',
+    'Someone is feeling unwell',
+    'Someone is threatening people',
+    'People are pushing',
+    'People cannot move',
+    'People are fighting',
+    'People are trapped in the crowd',
   ];
 
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String _selectedType = _incidentTypes.first;
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  String _lastWords = '';
+  TextEditingController? _autocompleteController;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
     _descriptionController.dispose();
+    _speech.cancel();
     super.dispose();
+  }
+
+  Future<void> _startListening() async {
+    final hasPermission = await Permission.microphone.request().isGranted;
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microphone permission denied. You can still type.')),
+        );
+      }
+      return;
+    }
+
+    final available = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+      onError: (errorNotification) {
+        if (mounted) setState(() => _isListening = false);
+      },
+    );
+
+    if (available) {
+      if (mounted) setState(() => _isListening = true);
+      await _speech.listen(
+        onResult: (result) {
+          if (mounted) {
+            setState(() {
+              _lastWords = result.recognizedWords;
+              if (_autocompleteController != null) {
+                // Update autocomplete controller to show in text field
+                // Ensure cursor moves to end
+                _autocompleteController!.value = TextEditingValue(
+                  text: _lastWords,
+                  selection: TextSelection.collapsed(offset: _lastWords.length),
+                );
+              } else {
+                _descriptionController.text = _lastWords;
+              }
+            });
+          }
+        },
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition is unavailable on this device.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _stopListening() async {
+    await _speech.stop();
+    if (mounted) setState(() => _isListening = false);
   }
 
   @override
@@ -84,40 +154,64 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
                           : 'Reporting for ${event.name}',
                     ),
                     const SizedBox(height: 24),
-                    InputField(
-                      label: 'Your Name',
-                      hint: 'Enter your name',
-                      controller: _nameController,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Describe what you saw? (Optional)',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Autocomplete<String>(
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return const Iterable<String>.empty();
+                            }
+                            final query = textEditingValue.text.toLowerCase();
+                            return _descriptionSuggestions.where(
+                              (suggestion) => suggestion.toLowerCase().contains(query),
+                            );
+                          },
+                          onSelected: (String selection) {
+                            _descriptionController.text = selection;
+                          },
+                          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                            _autocompleteController = textEditingController;
+                            // Link our local controller so it stays in sync
+                            textEditingController.addListener(() {
+                              _descriptionController.text = textEditingController.text;
+                            });
+                            return TextField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              maxLines: 4,
+                              decoration: const InputDecoration(
+                                hintText: 'I saw...',
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    InputField(
-                      label: 'Phone Number',
-                      hint: '10-digit mobile number',
-                      controller: _phoneController,
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Incident Type',
-                        style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedType,
-                      items: _incidentTypes
-                          .map((type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _selectedType = value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    InputField(
-                      label: 'Description (Optional)',
-                      hint: 'Describe what you observed',
-                      maxLines: 4,
-                      controller: _descriptionController,
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _isListening ? _stopListening : _startListening,
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? Colors.red : null,
+                        ),
+                        label: Text(_isListening ? 'Listening...' : 'Speak'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
+                          side: BorderSide(
+                            color: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (vm.errorMessage != null)
@@ -131,10 +225,23 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
                     const SizedBox(height: 16),
                     vm.isSubmitting
                         ? const LoadingIndicator(label: 'Submitting incident...')
-                        : PrimaryButton(
-                            label: 'Submit Report',
-                            icon: Icons.send_rounded,
-                            onPressed: isOnline ? () => _submit(vm, event) : null,
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              PrimaryButton(
+                                label: 'Submit Report',
+                                icon: Icons.send_rounded,
+                                onPressed: isOnline ? () => _submit(vm, event) : null,
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton(
+                                onPressed: isOnline ? () {
+                                  _descriptionController.clear();
+                                  _submit(vm, event);
+                                } : null,
+                                child: const Text('Skip Description & Submit'),
+                              ),
+                            ],
                           ),
                   ],
                 ),
@@ -154,20 +261,15 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
       return;
     }
 
-    final name = _nameController.text.trim();
-    final phone = _phoneController.text.trim();
-
-    if (name.isEmpty || phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name and phone number are required.')),
-      );
-      return;
-    }
+    final auth = context.read<AuthViewModel>();
+    final name = auth.fullName ?? 'Anonymous';
+    final phone = auth.phoneNumber ?? '0000000000';
     
 final success = await vm.submitIncident(
   eventId: event.id,
   name: name,
   phoneNumber: phone,
+  description: _descriptionController.text.trim(),
 );
 
 if (!mounted || !success) return;

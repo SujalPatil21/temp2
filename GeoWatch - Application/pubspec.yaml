@@ -16,6 +16,7 @@ dependencies:
   permission_handler: ^11.4.0
   connectivity_plus: ^5.0.2
   shared_preferences: ^2.5.3
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:

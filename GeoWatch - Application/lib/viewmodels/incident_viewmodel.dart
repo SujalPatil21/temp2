@@ -32,6 +32,7 @@ class IncidentViewModel extends ChangeNotifier {
     required int eventId,
     required String name,
     required String phoneNumber,
+    String? description,
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -47,6 +48,7 @@ class IncidentViewModel extends ChangeNotifier {
         latitude: location.latitude,
         longitude: location.longitude,
         timestamp: DateTime.now(),
+        description: description,
       );
 
       final incidentId = await _incidentRepository.submitIncident(request);

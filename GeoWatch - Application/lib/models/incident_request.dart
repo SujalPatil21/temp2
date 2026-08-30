@@ -6,6 +6,7 @@ class IncidentRequest {
     required this.latitude,
     required this.longitude,
     required this.timestamp,
+    this.description,
   });
 
   final int eventId;
@@ -14,6 +15,7 @@ class IncidentRequest {
   final double latitude;
   final double longitude;
   final DateTime timestamp;
+  final String? description;
 
   Map<String, dynamic> toJson() {
     return {
@@ -23,6 +25,7 @@ class IncidentRequest {
       'latitude': latitude,
       'longitude': longitude,
       'timestamp': timestamp.toIso8601String(),
+      if (description != null && description!.isNotEmpty) 'description': description,
     };
   }
 }
