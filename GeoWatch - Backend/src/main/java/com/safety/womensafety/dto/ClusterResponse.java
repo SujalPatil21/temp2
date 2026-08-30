@@ -13,4 +13,6 @@ public class ClusterResponse {
     private double centerLng;
     private int incidentCount;
     private String riskLevel;
+    private String highestSemanticRisk;
+    private java.util.List<String> clusterIncidentTypes;
 }

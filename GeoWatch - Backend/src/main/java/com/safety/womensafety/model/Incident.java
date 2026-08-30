@@ -32,6 +32,20 @@ public class Incident {
     private LocalDateTime timestamp;
 
     // NEW FIELD
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    // NEW FIELD
+    private String semanticRisk;
+
+    // NEW FIELD
+    @Column(columnDefinition = "TEXT")
+    private String aiReasoning;
+
+    // NEW FIELD
+    private String incidentType;
+
+    // NEW FIELD
     private boolean resolved = false;
 
     // NEW FIELD

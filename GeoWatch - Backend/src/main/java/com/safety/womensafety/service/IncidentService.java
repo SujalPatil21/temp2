@@ -25,6 +25,7 @@ public class IncidentService {
     private final ClusteringService clusteringService;
     private final SimpMessagingTemplate messagingTemplate;
     private final MetricsService metricsService;
+    private final GeminiRiskAnalysisService geminiRiskAnalysisService;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final ConcurrentHashMap<Long, ScheduledFuture<?>> pendingTasks = new ConcurrentHashMap<>();
@@ -89,6 +90,7 @@ public class IncidentService {
         incident.setLatitude(request.getLatitude());
         incident.setLongitude(request.getLongitude());
         incident.setTimestamp(LocalDateTime.now());
+        incident.setDescription(request.getDescription());
 
         // Save incident and capture saved entity
         Incident savedIncident = incidentRepository.save(incident);
@@ -96,6 +98,20 @@ public class IncidentService {
 
         // Trigger background calculation and broadcast
         triggerClusteringAndBroadcast(request.getEventId());
+
+        if (request.getDescription() != null && !request.getDescription().trim().isEmpty()) {
+            CompletableFuture.runAsync(() -> {
+                com.safety.womensafety.dto.GeminiAnalysisResult result = geminiRiskAnalysisService.analyzeIncident(request.getDescription());
+                if (result != null) {
+                    savedIncident.setSemanticRisk(result.getSemanticRisk());
+                    savedIncident.setIncidentType(result.getIncidentType());
+                    savedIncident.setAiReasoning(result.getReasoning());
+                    incidentRepository.save(savedIncident);
+                    // Re-trigger clustering after semantic risk update
+                    triggerClusteringAndBroadcast(request.getEventId());
+                }
+            });
+        }
 
         // Return the incident ID to Flutter
         return savedIncident.getId();

@@ -25,4 +25,6 @@ public class CreateIncidentRequest {
 
     @NotNull
     private Double longitude;
+
+    private String description;
 }

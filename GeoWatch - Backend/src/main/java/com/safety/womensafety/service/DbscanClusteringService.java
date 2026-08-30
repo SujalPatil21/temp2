@@ -49,17 +49,57 @@ public class DbscanClusteringService implements ClusteringService {
             expandCluster(cluster, incident, neighbors, index, visited);
         }
 
+        Set<Incident> clusteredIncidents = new HashSet<>();
         for (List<Incident> cluster : dbscanClusters) {
+            clusteredIncidents.addAll(cluster);
+            
             double centerLat = averageLatitude(cluster);
             double centerLng = averageLongitude(cluster);
             int incidentCount = cluster.size();
-            String riskLevel = determineRiskLevel(incidentCount);
-            clusters.add(new ClusterResponse(centerLat, centerLng, incidentCount, riskLevel));
+            String spatialRisk = determineRiskLevel(incidentCount);
+            
+            int highestSemanticValue = 0;
+            List<String> types = new ArrayList<>();
+            for (Incident inc : cluster) {
+                if (inc.getSemanticRisk() != null) {
+                    int val = mapRisk(inc.getSemanticRisk());
+                    if (val > highestSemanticValue) {
+                        highestSemanticValue = val;
+                    }
+                }
+                if (inc.getIncidentType() != null && !inc.getIncidentType().isEmpty()) {
+                    if (!types.contains(inc.getIncidentType())) {
+                        types.add(inc.getIncidentType());
+                    }
+                }
+            }
+            
+            int spatialValue = mapRisk(spatialRisk);
+            int finalRiskValue = Math.max(spatialValue, highestSemanticValue);
+            String finalRiskLevel = unmapRisk(finalRiskValue);
+            
+            String highestSemanticRisk = highestSemanticValue > 0 ? unmapRisk(highestSemanticValue) : null;
+            
+            clusters.add(new ClusterResponse(centerLat, centerLng, incidentCount, finalRiskLevel, highestSemanticRisk, types));
         }
 
-        if (clusters.isEmpty() && !incidents.isEmpty()) {
-            for (Incident incident : incidents) {
-                clusters.add(new ClusterResponse(incident.getLatitude(), incident.getLongitude(), 1, "LOW"));
+        for (Incident incident : incidents) {
+            if (!clusteredIncidents.contains(incident)) {
+                String spatialRisk = "LOW";
+                int highestSemanticValue = 0;
+                List<String> types = new ArrayList<>();
+                if (incident.getSemanticRisk() != null) {
+                    highestSemanticValue = mapRisk(incident.getSemanticRisk());
+                }
+                if (incident.getIncidentType() != null && !incident.getIncidentType().isEmpty()) {
+                    types.add(incident.getIncidentType());
+                }
+                
+                int finalRiskValue = Math.max(mapRisk(spatialRisk), highestSemanticValue);
+                String finalRiskLevel = unmapRisk(finalRiskValue);
+                String highestSemanticRisk = highestSemanticValue > 0 ? unmapRisk(highestSemanticValue) : null;
+                
+                clusters.add(new ClusterResponse(incident.getLatitude(), incident.getLongitude(), 1, finalRiskLevel, highestSemanticRisk, types));
             }
         }
 
@@ -114,6 +154,18 @@ public class DbscanClusteringService implements ClusteringService {
         } else {
             return "LOW";
         }
+    }
+
+    private int mapRisk(String risk) {
+        if ("HIGH".equals(risk)) return 3;
+        if ("MEDIUM".equals(risk)) return 2;
+        return 1;
+    }
+
+    private String unmapRisk(int val) {
+        if (val >= 3) return "HIGH";
+        if (val == 2) return "MEDIUM";
+        return "LOW";
     }
 
     private static class SpatialIndex {
