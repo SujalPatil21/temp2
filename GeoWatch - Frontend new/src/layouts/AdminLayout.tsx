@@ -4,7 +4,7 @@ import { CalendarDays, LayoutDashboard, LogOut, Map, Plus } from 'lucide-react'
 import Background from '../components/Background'
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
-import { clearAdminSession, getAuthToken } from '../services/api'
+import { clearAdminSession, getAdminId } from '../services/api'
 
 function MobileNav() {
   const navigate = useNavigate()
@@ -66,7 +66,7 @@ function AdminLayout() {
     })
   }
 
-  if (!getAuthToken()) return <Navigate to="/signin" replace />
+  if (!getAdminId()) return <Navigate to="/signin" replace />
 
   return (
     <div className="min-h-screen pb-24 text-[#ccd0cf] lg:pb-0">

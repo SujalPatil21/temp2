@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/theme/app_theme.dart';
 import '../models/event_model.dart';
@@ -62,11 +63,12 @@ class _EventHomeViewState extends State<_EventHomeView>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(event?.name ?? 'Event Home', style: const TextStyle(color: Colors.white)),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.navyGradient),
-        ),
+        title: Text(event?.name ?? 'Event Home', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -111,7 +113,7 @@ class _EventHomeViewState extends State<_EventHomeView>
                       onLongPressStart: (!isOnline || incidentVm.isSubmitting)
                           ? null
                           : (_) {
-                              HapticFeedback.mediumImpact();
+                              HapticFeedback.lightImpact();
                               _startHold(event, auth, incidentVm);
                             },
                       onLongPressEnd: (!isOnline || incidentVm.isSubmitting)
@@ -222,6 +224,66 @@ class _EventHomeViewState extends State<_EventHomeView>
                         style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                     ],
+                    if (event?.organizers.isNotEmpty == true) ...[
+                      const Spacer(),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Organizers',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...event!.organizers.map((org) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      org.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    if (org.phoneNumber.isNotEmpty)
+                                      Text(
+                                        org.phoneNumber,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                if (org.phoneNumber.isNotEmpty) ...[
+                                  const SizedBox(width: 12),
+                                  IconButton(
+                                    onPressed: () async {
+                                      final uri = Uri.parse('tel:${org.phoneNumber}');
+                                      try {
+                                        await launchUrl(uri);
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Could not open phone dialer')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.phone, color: Colors.greenAccent),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: Colors.white10,
+                                      padding: const EdgeInsets.all(8),
+                                    ),
+                                  )
+                                ]
+                              ],
+                            ),
+                          )),
+                    ]
                   ],
                 ),
               ),
@@ -245,7 +307,6 @@ class _EventHomeViewState extends State<_EventHomeView>
 
     if (event == null || auth.fullName == null || auth.phoneNumber == null) return;
     
-    HapticFeedback.heavyImpact();
     _holdController.value = 0;
     
     Navigator.pushNamed(

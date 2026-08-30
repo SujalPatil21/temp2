@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import mobAlertLogo from '../assets/MobAlert-Logo.png'
 import {
   CalendarDays,
   ChevronsLeft,
@@ -43,8 +44,8 @@ function Sidebar({ collapsed, onToggle }: SidebarProps) {
           collapsed ? 'justify-center w-full px-0' : 'px-2'
         }`}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mid text-base font-black text-[#ccd0cf] shadow-lg shadow-black/30">
-          M
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mid shadow-lg shadow-black/30 overflow-hidden">
+          <img src={mobAlertLogo} alt="MobAlert Logo" className="h-full w-full object-cover" />
         </span>
         {!collapsed && <span className="whitespace-nowrap text-base font-bold tracking-tight text-[#ccd0cf]">MOBALERT</span>}
       </button>

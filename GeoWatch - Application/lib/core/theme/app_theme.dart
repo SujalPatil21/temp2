@@ -4,12 +4,13 @@ import 'dark_theme.dart';
 import 'light_theme.dart';
 
 class AppTheme {
-  static const Color primary = Color(0xFF0F223A);
-  static const Color secondary = Color(0xFF1F3A5F);
-  static const Color accent = Color(0xFF27C7EA);
+  static const Color primary = Color(0xFF06141B);
+  static const Color secondary = Color(0xFF11212D);
+  static const Color accent = Color(0xFFF43F5E); // Pink/emergency accent
   static const Color cardLight = Color(0xFFF4F6F8);
-  static const Color cardDark = Color(0xFF162B45);
-  static const Color textSecondary = Color(0xFFB8C2CC);
+  static const Color cardDark = Color(0xFF11212D);
+  static const Color surfaceLighter = Color(0xFF253745);
+  static const Color textSecondary = Color(0xFF4A5C6A);
   static const Color alert = Color(0xFFE74C3C);
   static const Color lowRisk = Color(0xFFFBBF24);
   static const Color mediumRisk = Color(0xFFF97316);

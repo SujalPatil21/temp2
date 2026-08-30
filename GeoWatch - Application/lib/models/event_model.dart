@@ -1,3 +1,5 @@
+import 'organizer_model.dart';
+
 class EventModel {
   final int id;
   final String name;
@@ -6,6 +8,7 @@ class EventModel {
   final double radius;
   final DateTime startTime;
   final DateTime endTime;
+  final List<OrganizerModel> organizers;
 
   EventModel({
     required this.id,
@@ -15,6 +18,7 @@ class EventModel {
     required this.radius,
     required this.startTime,
     required this.endTime,
+    this.organizers = const [],
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,9 @@ class EventModel {
       radius: json['radius'],
       startTime: DateTime.parse(json['startTime']),
       endTime: DateTime.parse(json['endTime']),
+      organizers: json['organizers'] != null 
+          ? (json['organizers'] as List).map((o) => OrganizerModel.fromJson(o)).toList()
+          : [],
     );
   }
 }

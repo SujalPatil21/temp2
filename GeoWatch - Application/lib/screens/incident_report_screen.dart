@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
@@ -64,6 +65,13 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
   bool _isListening = false;
   String _lastWords = '';
   TextEditingController? _autocompleteController;
+  
+  String _selectedLocaleId = 'en-IN';
+  final List<Map<String, String>> _locales = [
+    {'id': 'en-IN', 'name': 'English'},
+    {'id': 'hi-IN', 'name': 'Hindi'},
+    {'id': 'mr-IN', 'name': 'Marathi'},
+  ];
 
   @override
   void dispose() {
@@ -97,6 +105,7 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
     if (available) {
       if (mounted) setState(() => _isListening = true);
       await _speech.listen(
+        localeId: _selectedLocaleId,
         onResult: (result) {
           if (mounted) {
             setState(() {
@@ -136,7 +145,11 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
     final isOnline = context.watch<ConnectivityService>().isOnline;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Report Incident')),
+      appBar: AppBar(
+        title: const Text('Report Incident', style: TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -198,19 +211,38 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: OutlinedButton.icon(
-                        onPressed: _isListening ? _stopListening : _startListening,
-                        icon: Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: _isListening ? Colors.red : null,
-                        ),
-                        label: Text(_isListening ? 'Listening...' : 'Speak'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
-                          side: BorderSide(
-                            color: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
+                      child: Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _isListening ? _stopListening : _startListening,
+                            icon: Icon(
+                              _isListening ? Icons.mic : Icons.mic_none,
+                              color: _isListening ? Colors.red : null,
+                            ),
+                            label: Text(_isListening ? 'Listening...' : 'Speak'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
+                              side: BorderSide(
+                                color: _isListening ? Colors.red : Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 16),
+                          DropdownButton<String>(
+                            value: _selectedLocaleId,
+                            underline: const SizedBox(),
+                            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                            items: _locales.map((locale) {
+                              return DropdownMenuItem<String>(
+                                value: locale['id'],
+                                child: Text(locale['name']!),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedLocaleId = val);
+                            },
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -260,6 +292,8 @@ class _IncidentReportViewState extends State<_IncidentReportView> {
       );
       return;
     }
+    
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthViewModel>();
     final name = auth.fullName ?? 'Anonymous';

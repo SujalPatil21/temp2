@@ -57,7 +57,7 @@ function Topbar() {
 
   return (
     <header className="relative flex items-center justify-between border-b border-white/10 bg-white/[0.01] px-5 py-3.5">
-      <div className="text-xs font-semibold text-muted">GeoWatch Command Center</div>
+      <div className="text-xs font-semibold text-muted">MOBALERT Command Center</div>
 
       {/* Notifications container with relative bounds */}
       <div className="relative flex items-center gap-2.5" ref={dropdownRef}>

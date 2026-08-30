@@ -59,13 +59,8 @@ class _SuccessScreenState extends State<SuccessScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final iconBg = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : AppTheme.primary.withValues(alpha: 0.08);
-
-    final iconColor = isDark ? AppTheme.accent : AppTheme.primary;
+    final iconBg = Colors.white.withValues(alpha: 0.12);
+    final iconColor = const Color(0xFF22d3ee);
 
     return Scaffold(
       body: SafeArea(
@@ -82,9 +77,7 @@ class _SuccessScreenState extends State<SuccessScreen> {
                     color: iconBg,
                     borderRadius: BorderRadius.circular(26),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : Colors.black.withValues(alpha: 0.05),
+                      color: Colors.white.withValues(alpha: 0.18),
                     ),
                   ),
                   child: Icon(

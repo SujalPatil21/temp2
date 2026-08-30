@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
+    List<Incident> findByEventIdOrderByTimestampDesc(Long eventId);
+
     List<Incident> findByEventIdAndTimestampAfterAndResolvedFalse(
             Long eventId,
             LocalDateTime time

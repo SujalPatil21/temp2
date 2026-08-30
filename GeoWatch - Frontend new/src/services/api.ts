@@ -9,24 +9,19 @@ const api = axios.create({
   },
 })
 
-export const getAuthToken = () => localStorage.getItem('authToken') ?? sessionStorage.getItem('authToken')
+export const getAdminId = () => localStorage.getItem('adminId') ?? sessionStorage.getItem('adminId')
 
 export const clearAdminSession = () => {
-  localStorage.removeItem('authToken')
   localStorage.removeItem('adminId')
-  sessionStorage.removeItem('authToken')
   sessionStorage.removeItem('adminId')
 }
 
-export const saveAdminSession = (token: string, adminId: string | number, remember: boolean) => {
+export const saveAdminSession = (adminId: string | number, remember: boolean) => {
   const storage = remember ? localStorage : sessionStorage
-  storage.setItem('authToken', token)
   storage.setItem('adminId', String(adminId))
 }
 
 api.interceptors.request.use((config) => {
-  const token = getAuthToken()
-  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
@@ -62,6 +57,18 @@ export interface CreateEventPayload {
   startTime: string
   endTime: string
   organizers: OrganizerPayload[]
+  adminId?: string | number
+}
+
+export interface IncidentResponse {
+  id: number
+  description: string | null
+  timestamp: string
+  latitude: number
+  longitude: number
+  resolved: boolean
+  semanticRisk: string | null
+  incidentType: string | null
 }
 
 export const registerAdmin = async (payload: RegisterAdminPayload) => {
@@ -75,7 +82,8 @@ export const loginAdmin = async (payload: LoginAdminPayload) => {
 }
 
 export const createEvent = async (payload: CreateEventPayload) => {
-  const response = await api.post('/events', payload)
+  const adminId = Number(getAdminId())
+  const response = await api.post('/events', { ...payload, adminId })
   return response.data
 }
 
@@ -90,7 +98,13 @@ export const getClustersByEventId = async (eventId: string) => {
 }
 
 export const getActiveEvents = async () => {
-  const response = await api.get<Event[]>('/events/admin/active')
+  const adminId = getAdminId()
+  const response = await api.get<Event[]>(`/events/admin/active?adminId=${adminId}`)
+  return response.data
+}
+
+export const getIncidentsByEvent = async (eventId: string) => {
+  const response = await api.get<IncidentResponse[]>(`/incidents/event/${eventId}`)
   return response.data
 }
 

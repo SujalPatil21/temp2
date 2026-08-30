@@ -22,51 +22,83 @@ class EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final textColor = lightSurface ? const Color(0xFF1F2937) : Colors.white;
-    final cardColor = lightSurface ? Colors.white : const Color(0xFF0F223A);
-
-    return Card(
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.event_rounded, color: Colors.white70, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(color: textColor),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Radius: $radius',
-                style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Starts: $startTimeLabel',
-                style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 46,
-                child: FilledButton(
-                  onPressed: joinEnabled ? onJoin : null,
-                  child: const Text('Join Event'),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.my_location_rounded, size: 16, color: Colors.white54),
+                const SizedBox(width: 8),
+                Text(
+                  'Radius: $radius',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time_rounded, size: 16, color: Colors.white54),
+                const SizedBox(width: 8),
+                Text(
+                  'Starts: $startTimeLabel',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: joinEnabled ? onJoin : null,
+                icon: const Icon(Icons.login_rounded, size: 20),
+                label: const Text('Join Event', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: joinEnabled ? Theme.of(context).colorScheme.secondary : Colors.white12,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

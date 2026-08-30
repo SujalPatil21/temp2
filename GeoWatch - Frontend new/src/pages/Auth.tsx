@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Eye, EyeOff, LockKeyhole } from 'lucide-react'
 import { loginAdmin, registerAdmin, saveAdminSession } from '../services/api'
+import mobAlertLogo from '../assets/MobAlert-Logo.png'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -92,8 +93,8 @@ function Auth({ mode }: AuthProps) {
           password: form.password,
         })
         const adminId = data?.adminId ?? data?.id
-        if (adminId && data?.token) {
-          saveAdminSession(data.token, adminId, remember)
+        if (adminId) {
+          saveAdminSession(adminId, remember)
           navigate('/admin/home')
           return
         }
@@ -107,12 +108,12 @@ function Auth({ mode }: AuthProps) {
       })
 
       const adminId = data?.adminId ?? data?.id
-      if (!adminId || !data?.token) {
-        fail('Login succeeded but no session token was returned by the backend.')
+      if (!adminId) {
+        fail('Login succeeded but no admin ID was returned by the backend.')
         return
       }
 
-      saveAdminSession(data.token, adminId, remember)
+      saveAdminSession(adminId, remember)
       navigate('/admin/home')
     } catch (requestError) {
       const message = axios.isAxiosError(requestError)
@@ -141,7 +142,10 @@ function Auth({ mode }: AuthProps) {
         style={{ width: '420px' }}
       >
         {/* Brand wordmark */}
-        <div className="text-center">
+        <div className="text-center flex flex-col items-center gap-2">
+          <div className="h-12 w-12 overflow-hidden rounded-xl bg-mid shadow-lg shadow-black/30">
+            <img src={mobAlertLogo} alt="MobAlert Logo" className="h-full w-full object-cover" />
+          </div>
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-muted">MOBALERT</p>
         </div>
 

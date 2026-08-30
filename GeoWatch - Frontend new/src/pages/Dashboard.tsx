@@ -4,13 +4,16 @@ import { motion } from 'framer-motion'
 import { useParams } from 'react-router-dom'
 import GlassCard from '../components/GlassCard'
 import Reveal from '../components/Reveal'
-import CreateEventCard from '../components/dashboard/CreateEventCard'
+
 import ActiveIncidentCard from '../components/dashboard/ActiveIncidentCard'
 import IncidentList from '../components/dashboard/IncidentList'
+import IncidentReportsPanel from '../components/dashboard/IncidentReportsPanel'
 import MapPanel from '../components/dashboard/MapPanel'
+import ChatbotPanel from '../components/dashboard/ChatbotPanel'
 import type { Cluster, Incident, RiskLevel } from '../types/cluster'
 import type { Event } from '../types/event'
-import { getClustersByEventId, getEventById } from '../services/api'
+import { getClustersByEventId, getEventById, getIncidentsByEvent } from '../services/api'
+import type { IncidentResponse } from '../services/api'
 import { createWebSocketClient } from '../services/websocket'
 
 type ClusterLike = {
@@ -118,6 +121,7 @@ function Dashboard() {
   const { eventId } = params
   const [eventData, setEventData] = useState<Event | null>(null)
   const [clusters, setClusters] = useState<Cluster[]>([])
+  const [incidents, setIncidents] = useState<IncidentResponse[]>([])
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -165,9 +169,10 @@ function Dashboard() {
         setLoading(true)
         setError('')
 
-        const [eventResponse, clusterResponse] = await Promise.all([
+        const [eventResponse, clusterResponse, incidentListResponse] = await Promise.all([
           getEventById(eventId),
           getClustersByEventId(eventId),
+          getIncidentsByEvent(eventId),
         ])
 
         if (!isMounted) {
@@ -197,6 +202,7 @@ function Dashboard() {
 
         setEventData(normalizedEvent)
         setClusters(normalizeClusters(clusterResponse, eventId))
+        setIncidents(incidentListResponse || [])
       } catch {
         if (!isMounted) {
           return
@@ -205,6 +211,7 @@ function Dashboard() {
         setError('Unable to load event monitoring data.')
         setEventData(null)
         setClusters([])
+        setIncidents([])
       } finally {
         if (isMounted) {
           setLoading(false)
@@ -222,25 +229,63 @@ function Dashboard() {
   useEffect(() => {
     if (!eventId || eventId === 'undefined' || eventId === 'null') return
 
+    let isActive = true
     const client = createWebSocketClient(wsEndpoint)
     client.debug = () => {}
 
-    client.connect({}, () => {
-      client.subscribe(`/topic/risk-updates/${eventId}`, (message) => {
-        try {
-          const payload = JSON.parse(message.body)
-          setClusters(normalizeClusters(payload, eventId))
-        } catch (err) {
-          console.error('WebSocket parse error', err)
+    const connectClient = () => {
+      client.connect(
+        {},
+        () => {
+          if (!isActive) {
+            client.disconnect(() => {})
+            return
+          }
+
+          client.subscribe(`/topic/risk-updates/${eventId}`, (message) => {
+            try {
+              if (!isActive) return
+              const payload = JSON.parse(message.body)
+              setClusters(normalizeClusters(payload, eventId))
+            } catch (err) {
+              console.error('WebSocket parse error', err)
+            }
+          })
+
+          client.subscribe(`/topic/incidents/${eventId}`, (message) => {
+            try {
+              if (!isActive) return
+              const newIncident = JSON.parse(message.body) as IncidentResponse
+              setIncidents((prev) => {
+                const exists = prev.findIndex((inc) => inc.id === newIncident.id)
+                if (exists >= 0) {
+                  const copy = [...prev]
+                  copy[exists] = newIncident
+                  return copy.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                }
+                return [newIncident, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              })
+            } catch (err) {
+              console.error('WebSocket parse error', err)
+            }
+          })
+        },
+        (error: unknown) => {
+          if (isActive) console.error('WebSocket connection error:', error)
         }
-      })
-    })
+      )
+    }
+
+    connectClient()
 
     return () => {
+      isActive = false
       try {
-        client.disconnect(() => {})
+        if (client && client.connected) {
+          client.disconnect(() => {})
+        }
       } catch (error) {
-        console.error('WebSocket disconnect error', error)
+        console.error('WebSocket safe disconnect error', error)
       }
     }
   }, [eventId])
@@ -318,7 +363,7 @@ function Dashboard() {
         <div className="grid min-h-full items-start gap-4 lg:grid-cols-[minmax(0,44%)_minmax(0,56%)]">
           {/* Left column */}
           <div className="flex flex-col gap-4">
-            <CreateEventCard />
+
             {selectedCluster ? (
               <ActiveIncidentCard cluster={selectedCluster} eventName={eventData.name} />
             ) : (
@@ -327,21 +372,25 @@ function Dashboard() {
               </div>
             )}
             <IncidentList clusters={clusters} selectedIndex={selectedIndex} onSelect={handleSelect} eventData={eventData} />
+            <ChatbotPanel eventId={eventId as string} />
           </div>
 
           {/* Right column */}
-          <MapPanel
-            eventData={eventData}
-            clusters={clusters}
-            selectedIndex={selectedIndex}
-            onSelectCluster={handleSelect}
-            mapCenter={mapCenter}
-            userLocation={userLocation}
-            locating={locating}
-            locationError={locationError}
-            onLocate={locateMe}
-            setMapRef={setMap}
-          />
+          <div className="flex flex-col gap-4">
+            <MapPanel
+              eventData={eventData}
+              clusters={clusters}
+              selectedIndex={selectedIndex}
+              onSelectCluster={handleSelect}
+              mapCenter={mapCenter}
+              userLocation={userLocation}
+              locating={locating}
+              locationError={locationError}
+              onLocate={locateMe}
+              setMapRef={setMap}
+            />
+            <IncidentReportsPanel incidents={incidents} />
+          </div>
         </div>
       </div>
     </Reveal>

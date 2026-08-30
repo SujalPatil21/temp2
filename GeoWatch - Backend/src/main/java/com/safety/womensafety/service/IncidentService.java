@@ -2,6 +2,7 @@ package com.safety.womensafety.service;
 
 import com.safety.womensafety.dto.ClusterResponse;
 import com.safety.womensafety.dto.CreateIncidentRequest;
+import com.safety.womensafety.dto.IncidentResponse;
 import com.safety.womensafety.model.Event;
 import com.safety.womensafety.model.Incident;
 import com.safety.womensafety.repository.EventRepository;
@@ -95,6 +96,9 @@ public class IncidentService {
         // Save incident and capture saved entity
         Incident savedIncident = incidentRepository.save(incident);
         metricsService.recordIncidentProcessed();
+        
+        // Broadcast new incident to UI
+        messagingTemplate.convertAndSend("/topic/incidents/" + savedIncident.getEventId(), new IncidentResponse(savedIncident));
 
         // Trigger background calculation and broadcast
         triggerClusteringAndBroadcast(request.getEventId());
@@ -107,6 +111,10 @@ public class IncidentService {
                     savedIncident.setIncidentType(result.getIncidentType());
                     savedIncident.setAiReasoning(result.getReasoning());
                     incidentRepository.save(savedIncident);
+                    
+                    // Broadcast updated incident (with semantic risk)
+                    messagingTemplate.convertAndSend("/topic/incidents/" + savedIncident.getEventId(), new IncidentResponse(savedIncident));
+                    
                     // Re-trigger clustering after semantic risk update
                     triggerClusteringAndBroadcast(request.getEventId());
                 }
@@ -125,7 +133,10 @@ public class IncidentService {
         incident.setResolved(true);
         incident.setResolvedAt(LocalDateTime.now());
 
-        incidentRepository.save(incident);
+        Incident savedIncident = incidentRepository.save(incident);
+        
+        // Broadcast resolved incident
+        messagingTemplate.convertAndSend("/topic/incidents/" + savedIncident.getEventId(), new IncidentResponse(savedIncident));
 
         // Trigger background calculation and broadcast
         triggerClusteringAndBroadcast(incident.getEventId());
@@ -175,5 +186,12 @@ public class IncidentService {
     @jakarta.annotation.PreDestroy
     public void shutdown() {
         scheduler.shutdown();
+    }
+
+    public List<IncidentResponse> getIncidentsByEvent(Long eventId) {
+        return incidentRepository.findByEventIdOrderByTimestampDesc(eventId)
+                .stream()
+                .map(IncidentResponse::new)
+                .toList();
     }
 }

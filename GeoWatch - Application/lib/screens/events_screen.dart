@@ -37,17 +37,16 @@ class _EventsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<EventViewModel>();
     final isOnline = context.watch<ConnectivityService>().isOnline;
-    const titleColor = Color(0xFF0F223A);
-    const subtitleColor = Color(0xFF475569);
+    final titleColor = Theme.of(context).colorScheme.onSurface;
+    final subtitleColor = titleColor.withValues(alpha: 0.7);
     final bodyBackground =
         BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nearby Events', style: TextStyle(color: Colors.white)),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.navyGradient),
-        ),
+        title: const Text('Nearby Events', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
@@ -203,8 +202,8 @@ class _ScanningLoaderState extends State<_ScanningLoader>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppTheme.accent.withValues(alpha: 0.42),
-                      AppTheme.secondary.withValues(alpha: 0.12),
+                      const Color(0xFF22d3ee).withValues(alpha: 0.42),
+                      const Color(0xFF253745).withValues(alpha: 0.12),
                     ],
                   ),
                 ),
@@ -217,7 +216,7 @@ class _ScanningLoaderState extends State<_ScanningLoader>
                       height: 72,
                       width: 4,
                       decoration: BoxDecoration(
-                        color: AppTheme.accent,
+                        color: const Color(0xFF22d3ee),
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
-import 'core/theme/app_theme.dart';
+import 'core/theme.dart';
 import 'screens/event_home_screen.dart';
 import 'screens/events_screen.dart';
 import 'screens/location_required_screen.dart';
@@ -88,10 +88,10 @@ class _GeoWatchAppState extends State<GeoWatchApp> with WidgetsBindingObserver {
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'GeoWatch - Crowd Safety Intelligence',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.light,
-        themeMode: ThemeMode.light,
+        title: 'MobAlert - Crowd Safety Intelligence',
+        theme: AppTheme.dark,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
         themeAnimationDuration: const Duration(milliseconds: 200),
         debugShowCheckedModeBanner: false,
         initialRoute: SplashScreen.routeName,
