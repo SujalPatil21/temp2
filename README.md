@@ -19,7 +19,7 @@ Organizers use a React/TypeScript dashboard to monitor live event conditions thr
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 
 - [Overview](#-overview)
 - [Core Workflow](#-core-workflow)
@@ -50,7 +50,7 @@ Organizers use a React/TypeScript dashboard to monitor live event conditions thr
 
 ---
 
-## 🎯 Overview
+##  Overview
 
 Crowd-safety systems often receive many individual reports without enough context for an organizer to determine what deserves immediate attention.
 
@@ -66,7 +66,7 @@ Instead of treating every SOS as an isolated event, the platform turns incident 
 
 ---
 
-## 🔄 Core Workflow
+##  Core Workflow
 
 ### Participant Flow
 
@@ -125,9 +125,9 @@ Answer shown in dashboard
 
 ---
 
-# 🚀 Features
+#  Features
 
-## 📱 Participant Mobile Application
+##  Participant Mobile Application
 
 - Nearby event discovery using location
 - Event selection and joining
@@ -168,7 +168,7 @@ The final report action also provides a single haptic confirmation.
 
 ---
 
-## 🖥️ Organizer Admin Dashboard
+##  Organizer Admin Dashboard
 
 - Admin registration/login
 - Active event management
@@ -186,7 +186,7 @@ The final report action also provides a single haptic confirmation.
 
 ---
 
-# 🧠 Gemini AI Integration
+#  Gemini AI Integration
 
 Gemini is integrated into the **core safety pipeline**, rather than being used only for a demonstration chatbot.
 
@@ -322,7 +322,7 @@ Gemini never lowers an already higher spatial risk.
 
 ---
 
-# 🚦 Risk Model
+#  Risk Model
 
 MobAlert keeps **risk** separate from operational urgency/priority.
 
@@ -356,7 +356,7 @@ There is currently **no CRITICAL risk level**.
 
 ---
 
-# 📍 Event Geofencing
+#  Event Geofencing
 
 Every incident is validated against the event's configured geofence.
 
@@ -374,7 +374,7 @@ This prevents unrelated external locations from contaminating an event's safety 
 
 ---
 
-# 🧮 DBSCAN Clustering
+#  DBSCAN Clustering
 
 MobAlert uses a custom DBSCAN implementation to convert individual incidents into geographic clusters.
 
@@ -407,7 +407,7 @@ Spatial risk
 
 ---
 
-# 🔌 Realtime WebSocket System
+#  Realtime WebSocket System
 
 The backend broadcasts updated cluster information using STOMP over WebSockets.
 
@@ -453,7 +453,7 @@ The dashboard updates without requiring a page refresh.
 
 ---
 
-# 🤖 Gemini Event Intelligence
+#  Gemini Event Intelligence
 
 The admin dashboard contains a **read-only Gemini Event Intelligence chatbot**.
 
@@ -527,7 +527,7 @@ The chatbot is therefore an intelligence layer over the live monitoring system, 
 
 ---
 
-# 🗣️ Multilingual and Voice Input
+#  Multilingual and Voice Input
 
 ## Participant App
 
@@ -631,7 +631,7 @@ The selected language controls speech recognition and the preferred response lan
 
 ---
 
-# 🧰 Tech Stack
+#  Tech Stack
 
 ## Mobile
 
@@ -678,7 +678,7 @@ The selected language controls speech recognition and the preferred response lan
 
 ---
 
-# 📁 Project Structure
+#  Project Structure
 
 ```text
 Geo-Watch/
@@ -743,7 +743,7 @@ Geo-Watch/
 
 ---
 
-# 📋 Folder-wise Explanation
+#  Folder-wise Explanation
 
 ## `GeoWatch - Application`
 
@@ -813,7 +813,7 @@ WebSocket testing resources.
 
 ---
 
-# ✅ Prerequisites
+#  Prerequisites
 
 Install:
 
@@ -909,7 +909,7 @@ flutter pub get
 
 ---
 
-# 🔐 Environment Variables
+#  Environment Variables
 
 ## Gemini
 
@@ -949,7 +949,7 @@ Keep production configuration separate.
 
 ---
 
-# ▶️ Running Locally
+#  Running Locally
 
 ## Start Backend
 
@@ -1217,7 +1217,7 @@ This limits rapid repeated submissions while remaining persistent across applica
 
 ---
 
-# ⚡ Asynchronous Processing
+#  Asynchronous Processing
 
 Clustering is scheduled asynchronously and debounced to reduce repeated calculations during bursts of reports.
 
@@ -1227,7 +1227,7 @@ This preserves the emergency reporting path even when AI processing is slow or t
 
 ---
 
-# 📊 Performance
+#  Performance
 
 The project includes scalability/performance validation using k6.
 
@@ -1253,7 +1253,7 @@ GeoWatch_Scalability_Performance_Validation_Report.md
 
 ---
 
-# 🧪 Testing
+#  Testing
 
 ## Backend
 
@@ -1287,7 +1287,7 @@ Gemini integration testing covers:
 
 ---
 
-# 📸 Screenshots & Demo
+#  Screenshots & Demo
 
 ## Mobile
 
@@ -1341,19 +1341,8 @@ Gemini integration testing covers:
 
 ---
 
-# 🌐 Demo
 
-Current deployed demo:
-
-```text
-https://geo-watch.pages.dev/
-```
-
-For local development, use the local backend and current frontend rather than the deployed services.
-
----
-
-# 🔒 Security
+#  Security
 
 The Gemini API key is backend-only.
 
@@ -1371,7 +1360,7 @@ The current authentication implementation should not be considered production-gr
 
 ---
 
-# ⚠️ Limitations
+#  Limitations
 
 - The current WebSocket broker uses an in-memory simple broker and is not designed for multi-node horizontal scaling.
 - Clustering debounce state is in-memory.
@@ -1382,7 +1371,7 @@ The current authentication implementation should not be considered production-gr
 
 ---
 
-# 🛠️ Development Notes
+# Development Notes
 
 The system intentionally separates responsibilities:
 
@@ -1410,7 +1399,7 @@ This allows deterministic spatial processing and AI-driven semantic understandin
 
 ---
 
-# 🤝 Contributing
+#  Contributing
 
 Contributions are welcome.
 
@@ -1430,7 +1419,7 @@ Before opening a pull request:
 
 ---
 
-# 📄 License
+#  License
 
 This project is currently provided for hackathon and demonstration purposes.
 
@@ -1438,7 +1427,7 @@ A formal open-source license has not been specified yet.
 
 ---
 
-# 👥 Authors
+#  Authors
 
 - **Shreya Awari** — [GitHub](https://github.com/shreyaawari28)
 - **Sujal Patil** — [GitHub](https://github.com/SujalPatil21)
@@ -1447,7 +1436,7 @@ A formal open-source license has not been specified yet.
 
 ---
 
-# 💡 Vision
+#  Vision
 
 MobAlert is designed to move crowd safety from reactive incident handling toward real-time, AI-assisted situational awareness.
 
