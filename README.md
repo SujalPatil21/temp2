@@ -24,8 +24,6 @@
 ---
 
 
-
-
 ## GeoWatch – Project Overview
 
 GeoWatch is a real-time crowd safety monitoring platform designed for large public events.  
